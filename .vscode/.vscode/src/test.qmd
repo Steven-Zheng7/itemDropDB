@@ -1,0 +1,17 @@
+
+
+```{python}
+#| eval: true
+#| echo: false
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/NPC/1001", headers=headers)
+data = response.json()
+
+print(data[0]['NPC_name'])
+
+```

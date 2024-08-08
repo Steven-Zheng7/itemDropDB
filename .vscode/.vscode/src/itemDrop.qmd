@@ -1,0 +1,389 @@
+---
+title: CMSC508 - Final Report Semester Project (Item Drop Database)
+author: Steven Zheng and Shashank Mallipeddi
+date: 11-28-2023
+format:
+    html:
+        theme: cosmo
+        toc: true
+        embed-resources: true
+        code-copy: true
+---
+# Section: 1 Links
+
+## Github URL
+<https://github.com/cmsc-vcu/cmsc508-fa2023-prj-itemdropdb-group-52>
+
+## Video URL
+<Place Holder>
+
+## Flask File Link(On Github):
+<Place Holder>
+
+# Section 2: Problem Description
+
+## Problem Description
+RPG games like World of Warcraf, Black Desert, Breath of the Wild and etc. often contans a vast amount of items, ranging from random trash items to legendary grade items. More often than not, players of such video game will need to browse the internet to find the origin/drop location of some item they never seen before or they will have to search up crafting recipe for said item like in Minecraft, Toram, or any games that allow a player to have a crafting occupation. However, sometimes it is a hassle to open up the browser again to search for information about the item. Therefore, we want to create a general item drop database that can store item information from any RPG games.
+
+## Need
+The reason this database is needed is because I believe that searching the internet for item information on a particular game usually takes a decent amount of time. The time wasted on searching could have been optimized and use for grinding said item. With this database, I believe we can cut down the time use for searching the item information down by 60% thus providing extra grind time for rpg players.
+
+## Context, Scope, Perspective
+This database can be use for any RPG players or any game that has too much item information for the human brain to memorize.
+
+## Motivation
+To be completely honest, I(Steven Zheng) am just too lazy to constantly search up item drop location for the current game that I am playing that I just wish there is a database where I can simply type in an item’s name and it will just tell me where to get it.
+
+## User roles and use cases
+User roles for our database could be players and admin. Players are people who seeks out information about a particular item information that is stored in our database. They will likely do a simple search/query in order to aquire the information that they are looking for. The result could contain an image link of the item’s appearance or a marked location on a map where the item originate from. Admin could be game developers or the creator of the database where they could use the database as its intended purpose or they could add new items into the database, by a command, to keep it relavent after multiple updates of the games that the database supports.
+
+## Security and Privacy
+One of the major secuirty concern are scrapers. There are many web scraper program that could create a sub database using our database as the host. Therefore, creating a way to not store information in the html code is a possible route that we would like to take with our design. Another concern is user authentication which we will like to create an account system where players will have to create and verify their account before being able to interact with the database.
+
+# Section 3: Entities 
+Our database will have 5 main entities:
+1. Player
+2. Item
+3. Location
+4. NPC
+5. Game 
+
+## Relational Schemas of Database
+### Relation: Player
+    * integer: Player_ID (Primary Key) (Must be unque.)
+    * integer: Player_LV (Must be 1 or greater.)
+    * string: Player_Name (One word)
+### Relation: Game
+
+    * integer: Game_ID (Primary Key) (Unique)
+    * string: Game_Version (Using String to capture any version using letters in their version)
+    * string: Game_Name
+    * string: Genre
+### Relation NPC
+
+    * integer: NPC_ID (Primary Key) (Unique)
+    * string: NPC_Type (Hostile/Character)
+    * integer: NPC_LV
+    * string: NPC_Name
+    * integer: Item_ID (Foreign Key)
+### Relation: Item
+
+    * integer Item_ID (Primary Key)
+    * string Item_Type
+    * string Effect (Must be a listing if it has more than one effect.)
+    * string Item_Name
+    * string Recipe (Must be a list.)
+    * integer Attack
+    * integer Defense
+### Relation: Location
+
+    * integer: Location_ID (Primary Key)
+    * integer: Location_LV
+    * string: Location_Name
+    * integer: Game_ID (Foreign Key)
+### Relation: Has (Linking Table)
+
+    * integer: Player_ID (Foreign Key)
+    * integer: Item_ID (Foreign Key)
+### Relation: Ground_Drop_At (Linking Table)
+
+    * integer: Location_ID (Foreign Key)
+    * integer: Item_ID (Foreign Key)
+### Relation: At (Linking Table)
+
+    * integer: Location_ID (Foreign Key)
+    * integer: NPC_ID (Foreign Key)
+
+# Section 4: Users
+Document how users might use the application to get stuff done
+
+# Section 5: ER Diagram (Crow Foot Notation)
+```{mermaid}
+erDiagram
+
+NPC {
+    Integer NPC_LV
+    String NPC_Name
+    String NPC_Type
+    Integer NPC_ID PK
+    Integer Item_ID FK
+
+}
+Location {
+    Integer Location_ID PK
+    Integer Location_LV
+    String Location_Name
+    Integer Game_ID FK
+}
+Item {
+    Integer Item_ID PK
+    Integer Attack
+    Integer Defense
+    String Recipe
+    String Effect
+    String Item_Name
+    String Item_Type
+}
+Player {
+    Integer Player_ID PK
+    Integer Player_LV
+    String Player_Name
+}
+Game {
+    Integer Game_ID PK
+    String Game_Name
+    String Game_Version
+    String Genre
+}
+
+Has {
+    Integer Player_ID FK
+    Integer Item_ID FK
+}
+
+Ground_Drop_at {
+    Integer Item_ID FK
+    Integer Location_ID FK
+}
+At {
+    Integer NPC_ID FK
+    Integer Location_ID FK
+}
+```
+
+# Section 6: DDL statements
+### Link to ddl file on github:
+<https://github.com/cmsc-vcu/cmsc508-fa2023-prj-itemdropdb-group-52/blob/main/src/itemDrop-ddl.sql>
+
+# Section 7: Table Data
+Show 5 data from each table
+
+# Section 8: API Design
+### Here is the code for our endpoints
+```{python}
+#| eval: false
+#| echo: true
+
+# define a route and view function
+@app.route('/api/tables')
+def hello_table():
+    df = my_sql_wrapper("show tables")
+    json_data = df.to_json()
+    return json_data
+
+@app.route('/api/tables/player')
+def get_players():
+    df = my_sql_wrapper("select * from player")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/locations')
+def get_locations():
+    df = my_sql_wrapper("select * from locations")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/NPC')
+def get_NPC():
+    df = my_sql_wrapper("select * from NPC")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/item')
+def get_item():
+    df = my_sql_wrapper("select * from item")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/game')
+def get_game():
+    df = my_sql_wrapper("select * from game")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+## Getting a single object data for each table
+@app.route('/api/tables/player/<int:player_id>')
+def get_one_players(player_id):
+    df = my_sql_wrapper("select * from player where player_id = " + str(player_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/locations/<int:location_id>')
+def get_one_location(location_id):
+    df = my_sql_wrapper("select * from locations where location_id = " + str(location_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/NPC/<int:NPC_id>')
+def get_one_NPC(NPC_id):
+    df = my_sql_wrapper("select * from NPC where NPC_id = " + str(NPC_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/game/<int:game_id>')
+def get_one_game(game_id):
+    df = my_sql_wrapper("select * from game where game_id = " + str(game_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/item/<int:item_id>')
+def get_one_item(item_id):
+    df = my_sql_wrapper("select * from item where item_id = " + str(item_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+```
+### End points in table format:
+| Endpoints            | Description                  | 
+|----------------------|------------------------------|
+|/api/tables/player    | Access to the player table.  |
+|/api/tables/          | This just shows all tables.  |
+|/api/tables/locations | Access to the location table.|
+|/api/tables/NPC       | Access to the NPC table.     |
+|/api/tables/game      | Access to the game table.    |
+|/api/tables/item      | Access to the item table.    |
+|/api/tables/player/id    | Access to one instance of the player table.  |
+|/api/tables/locations/id | Access to one instance of the location table.|
+|/api/tables/NPC/id       | Access to one instance of the NPC table.     |
+|/api/tables/game/id      | Access to one instance of the game table.    |
+|/api/tables/item/id      | Access to one instance of the item table.    |
+# Section 9: API Security(Token)
+We would like to show our security token in action.
+### Token/Security code implemented in the header
+```{python}
+#| eval: false
+#| echo: true
+
+#assinging keys
+app.config['SECRET_KEY'] = 'LET_ME_IN_LET_ME_IN'
+
+#function to check the header for auth token
+@app.before_request
+def check_token():
+    token = request.headers.get('Authorization')
+    if token != 'Bearer ' + app.config['SECRET_KEY']:
+        return jsonify(message='Access Denied! Invalid Token.'), 401
+
+```
+### Attempting to connect to database without authorization
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+response = requests.get("http://127.0.0.1:5000/api/tables/NPC/1001")
+data = response.json()
+
+print(data)
+
+```
+### Attempting to connect with authorization
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/NPC/1001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+# Section 10: API Query
+### Returning an object from NPC Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/NPC/1001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+### Returning an object from game Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/game/5001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+### Returning an object from item Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/item/2001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+### Returning an object from player Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/player/4001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+### Returning an object from locations Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/locations/3001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+# Section 11: API Filter
+Show the filter working to return the wanted data
+
+# Section 12: API Update
+Show the data being updated
+
+# Section 13: API Delete
+Show delete statement working
+
+# Section 14: SQL Actions
+Show Flask end point and show the response in SQL
+
+# Section 15: Reflection 
+Add reflections here

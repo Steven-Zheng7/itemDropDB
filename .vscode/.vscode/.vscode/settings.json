@@ -1,0 +1,18 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "cmsc508.com",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "itemDropDatabase",
+            "database": "23FA_groups_group52",
+            "username": "23FA_zhengs7",
+            "password": "Shout4_zhengs7_GOME"
+        }
+    ]
+}

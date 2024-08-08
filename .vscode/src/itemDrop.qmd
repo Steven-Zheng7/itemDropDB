@@ -1,0 +1,707 @@
+---
+title: CMSC508 - Final Report Semester Project (Item Drop Database)
+author: Steven Zheng and Shashank Mallipeddi
+date: 12-06-2023
+format:
+    html:
+        theme: cosmo
+        toc: true
+        embed-resources: true
+        code-copy: true
+        code-fold: true
+---
+# Section: 1 Links
+
+#### Github URL
+<https://github.com/cmsc-vcu/cmsc508-fa2023-prj-itemdropdb-group-52>
+
+#### Video URL
+<Place Holder>
+
+#### Flask File Link(On Github):
+<https://github.com/cmsc-vcu/cmsc508-fa2023-prj-itemdropdb-group-52/blob/main/src/flask_db.py>
+
+# Section 2: Problem Description
+
+#### Problem Description
+RPG games like World of Warcraf, Black Desert, Breath of the Wild and etc. often contans a vast amount of items, ranging from random trash items to legendary grade items. More often than not, players of such video game will need to browse the internet to find the origin/drop location of some item they never seen before or they will have to search up crafting recipe for said item like in Minecraft, Toram, or any games that allow a player to have a crafting occupation. However, sometimes it is a hassle to open up the browser again to search for information about the item. Therefore, we want to create a general item drop database that can store item information from any RPG games.
+
+#### Need
+The reason this database is needed is because I believe that searching the internet for item information on a particular game usually takes a decent amount of time. The time wasted on searching could have been optimized and use for grinding said item. With this database, I believe we can cut down the time use for searching the item information down by 60% thus providing extra grind time for rpg players.
+
+#### Context, Scope, Perspective
+This database can be use for any RPG players or any game that has too much item information for the human brain to memorize.
+
+#### Motivation
+To be completely honest, I(Steven Zheng) am just too lazy to constantly search up item drop location for the current game that I am playing that I just wish there is a database where I can simply type in an item’s name and it will just tell me where to get it.
+
+#### User roles and use cases
+User roles for our database could be players and admin. Players are people who seeks out information about a particular item information that is stored in our database. They will likely do a simple search/query in order to aquire the information that they are looking for. The result could contain an image link of the item’s appearance or a marked location on a map where the item originate from. Admin could be game developers or the creator of the database where they could use the database as its intended purpose or they could add new items into the database, by a command, to keep it relavent after multiple updates of the games that the database supports.
+
+#### Security and Privacy
+One of the major secuirty concern are scrapers. There are many web scraper program that could create a sub database using our database as the host. Therefore, creating a way to not store information in the html code is a possible route that we would like to take with our design. Another concern is user authentication which we will like to create an account system where players will have to create and verify their account before being able to interact with the database.
+
+# Section 3: Entities 
+Our database will have 5 main entities:
+1. Player
+2. Item
+3. Location
+4. NPC
+5. Game 
+
+## Relational Schemas of Database
+#### Relation: Player
+    * integer: Player_ID (Primary Key) (Must be unque.)
+    * integer: Player_LV (Must be 1 or greater.)
+    * string: Player_Name (One word)
+#### Relation: Game
+
+    * integer: Game_ID (Primary Key) (Unique)
+    * string: Game_Version (Using String to capture any version using letters in their version)
+    * string: Game_Name
+    * string: Genre
+#### Relation NPC
+
+    * integer: NPC_ID (Primary Key) (Unique)
+    * string: NPC_Type (Hostile/Character)
+    * integer: NPC_LV
+    * string: NPC_Name
+    * integer: Item_ID (Foreign Key)
+#### Relation: Item
+
+    * integer Item_ID (Primary Key)
+    * string Item_Type
+    * string Effect (Must be a listing if it has more than one effect.)
+    * string Item_Name
+    * string Recipe (Must be a list.)
+    * integer Attack
+    * integer Defense
+#### Relation: Location
+
+    * integer: Location_ID (Primary Key)
+    * integer: Location_LV
+    * string: Location_Name
+    * integer: Game_ID (Foreign Key)
+#### Relation: Has (Linking Table)
+
+    * integer: Player_ID (Foreign Key)
+    * integer: Item_ID (Foreign Key)
+#### Relation: Ground_Drop_At (Linking Table)
+
+    * integer: Location_ID (Foreign Key)
+    * integer: Item_ID (Foreign Key)
+#### Relation: At (Linking Table)
+
+    * integer: Location_ID (Foreign Key)
+    * integer: NPC_ID (Foreign Key)
+
+# Section 4: Users
+Document how users might use the application to get stuff done
+
+# Section 5: ER Diagram (Crow Foot Notation)
+```{mermaid}
+erDiagram
+Player ||--|{ Item : has
+Item ||--|{ NPC: from
+Item ||--|{ Location: Ground_Drop_At
+NPC ||--|{ Location: At
+Game o|--|{ Location: in
+NPC {
+    Integer NPC_LV
+    String NPC_Name
+    String NPC_Type
+    Integer NPC_ID PK
+    Integer Item_ID FK
+
+}
+Location {
+    Integer Location_ID PK
+    Integer Location_LV
+    String Location_Name
+    Integer Game_ID FK
+}
+Item {
+    Integer Item_ID PK
+    Integer Attack
+    Integer Defense
+    String Recipe
+    String Effect
+    String Item_Name
+    String Item_Type
+}
+Player {
+    Integer Player_ID PK
+    Integer Player_LV
+    String Player_Name
+}
+Game {
+    Integer Game_ID PK
+    String Game_Name
+    String Game_Version
+    String Genre
+}
+
+Has {
+    Integer Player_ID FK
+    Integer Item_ID FK
+}
+
+Ground_Drop_at {
+    Integer Item_ID FK
+    Integer Location_ID FK
+}
+At {
+    Integer NPC_ID FK
+    Integer Location_ID FK
+}
+```
+
+# Section 6: DDL statements
+#### Link to ddl file on github:
+<https://github.com/cmsc-vcu/cmsc508-fa2023-prj-itemdropdb-group-52/blob/main/src/itemDrop-ddl.sql>
+
+# Section 7: Table Data
+Show 5 data from each table
+```{python}
+#| eval: true
+#| echo: false
+
+from flask import Flask, jsonify, request
+import os
+import sys
+import pandas as pd
+from tabulate import tabulate
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError, ProgrammingError
+from IPython.display import display, Markdown
+
+
+config_map = {
+    'user':'CMSC508_USER',
+    'password':'CMSC508_PASSWORD',
+    'host':'CMSC508_HOST',
+    'database':'FLASK_DB_NAME'
+}
+# load and store credentials
+load_dotenv()
+config = {}
+for key in config_map.keys():
+    config[key] = os.getenv(config_map[key])
+flag = False
+for param in config.keys():
+    if config[param] is None:
+        flag = True
+        print(f"Missing {config_map[param]} in .env file")
+
+# build a sqlalchemy engine string
+engine_uri = f"mysql+pymysql://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
+
+
+# create a database connection.  THIS IS THE ACTUAL CONNECTION!
+try:
+    conn = create_engine(engine_uri)
+except ArgumentError as e:
+    print(f"create_engine: Argument Error: {e}")
+    #sys.exit(1)
+except NoSuchModuleError as e:
+    print(f"create_engine: No Such Module Error: {e}")
+    #sys.exit(1)
+except Exception as e:
+    print(f"create_engine: An error occurred: {e}")
+    #sys.exit(1)
+
+## This is a helper function to keep the QMD file looking cleaner!
+
+def my_sql_wrapper( query ):
+    """ takes a query and returns a pandas dataframe for output """
+    try:
+        df = pd.read_sql( query, conn )
+    except Exception as e:
+        df = pd.DataFrame({'Query error': ["(see error message above)"]})
+        msg = str(e).replace(") (",")\n(")
+        print(msg)
+    return df
+
+def my_sql_statement( statement ):
+    """ used with DDL, when the statement doesn't return any results. """
+    try:
+        with conn.begin() as x:
+            x.execute(text(statement))
+            x.commit()
+    #    conn = create_engine(engine_uri)
+        result = ""
+    except Exception as e:
+        result = f"Error: {str(e)}"
+#    conn = create_engine(engine_uri)
+    return result
+```
+#### Show first 5 item from item table
+```{python}
+my_sql_wrapper("""
+select * from item LIMIT 5
+""")
+
+```
+#### Show first 5 item from NPC table
+```{python}
+my_sql_wrapper("""
+select * from NPC LIMIT 5
+""")
+
+```
+#### Show first 5 item from game table
+```{python}
+my_sql_wrapper("""
+select * from game LIMIT 5
+""")
+
+```
+#### Show first 5 item from locations table
+```{python}
+my_sql_wrapper("""
+select * from locations LIMIT 5
+""")
+
+```
+#### Show first 5 item from player table
+```{python}
+my_sql_wrapper("""
+select * from player LIMIT 5
+""")
+
+```
+
+
+# Section 8: API Design
+
+#### End points in table format:
+| Endpoints            | Description                  | 
+|----------------------|------------------------------|
+|http://127.0.0.1:5000/api/tables/player    | Access to the player table.  |
+|http://127.0.0.1:5000/api/tables/          | This just shows all tables.  |
+|http://127.0.0.1:5000/api/tables/locations | Access to the location table.|
+|http://127.0.0.1:5000/api/tables/NPC       | Access to the NPC table.     |
+|http://127.0.0.1:5000/api/tables/game      | Access to the game table.    |
+|http://127.0.0.1:5000/api/tables/item      | Access to the item table.    |
+|http://127.0.0.1:5000/api/tables/player/id    | Access to one instance of the player table.  |
+|http://127.0.0.1:5000/api/tables/locations/id | Access to one instance of the location table.|
+|http://127.0.0.1:5000/api/tables/NPC/id       | Access to one instance of the NPC table.     |
+|http://127.0.0.1:5000/api/tables/game/id      | Access to one instance of the game table.    |
+|http://127.0.0.1:5000/api/tables/item/id      | Access to one instance of the item table.    |
+|http://127.0.0.1:5000/api/tables/item/?type= | Used to find all items of a certain type |
+|http://127.0.0.1:5000/api/tables/item/?item_source= | Used to find where an item is obtained from. |
+|http://127.0.0.1:5000/api/tables/item/add/?item_id=...&item_name=...etc | Used to insert an item into the item table by providing all of the info in the url. |
+|http://127.0.0.1:5000/api/tables/item/update/?item_id=... | Used to update an item in the item table by the targeted item id and providing the nescassary fields. |
+|http://127.0.0.1:5000/api/tables/item/delete/?item_id=... | Used to deleted all item via providing the item id that you want to delete. |
+
+# Section 9: API Security(Token)
+We would like to show our security token in action.
+
+#### Token/Security code implemented in the header
+```{python}
+#| eval: false
+#| echo: true
+
+#assinging keys
+app.config['SECRET_KEY'] = 'LET_ME_IN_LET_ME_IN'
+
+#function to check the header for auth token
+@app.before_request
+def check_token():
+    token = request.headers.get('Authorization')
+    if token != 'Bearer ' + app.config['SECRET_KEY']:
+        return jsonify(message='Access Denied! Invalid Token.'), 401
+
+```
+#### Attempting to connect to database without authorization
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+response = requests.get("http://127.0.0.1:5000/api/tables/NPC/1001")
+data = response.json()
+
+print(data)
+
+```
+#### Attempting to connect with authorization
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/NPC/1001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+
+# Section 10: API Query
+#### Returning an object from NPC Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/NPC/1001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+#### Returning an object from game Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/game/5001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+#### Returning an object from item Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/item/2001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+#### Returning an object from player Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/player/4001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+#### Returning an object from locations Table
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/locations/3001", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+
+# Section 11: API Filter
+
+#### Filter using "type"
+Users can use "?type=(item type)" to get a record of all items of a certain type from all games
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/item/?type=potion", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+
+#### Filter using "item_source"
+Users can use "item_source=(Name of item)" to find out how to obtain the item and from what game the item is in.
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/item/?item_source=iron+sword", headers=headers)
+data = response.json()
+
+print("Raw json Data")
+print(data)
+print("Cleaned Json data")
+for inst in data:
+    item_name = inst['item_name']
+    NPC_name = inst['NPC_name']
+    location_name = inst['location_name']
+    game_name = inst['game_name']
+    print(f"Item Name:{item_name}, NPC Name:{NPC_name}, Location Name:{location_name}, Game:{game_name}")
+```
+
+# Section 12: API Insert
+#### Here is an example of how we can insert an item into the database through the api
+We are adding a new item called "Strong Dagger" to the item table where its type is weapon, attack is 20 with poison effect. Everything else will either be "None" or 0.
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/item/add/?item_id=2011&item_name=Strong+Dagger&item_type=weapon&item_def=0&item_atk=20&item_recipe=None&item_effect=Poison+element", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+
+#### Checking the database to confirm it has been added
+```{python}
+my_sql_wrapper("""
+select * from item 
+""")
+
+```
+
+# Section 13: API Update
+We are updating the strong dagger to make it a weak dagger in the item table with 1 attack point.
+
+#### Example of update function through the api
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/item/update/?item_id=2011&item_name=Dull+Dagger&item_type=weapon&item_def=0&item_atk=1&item_recipe=None&item_effect=Poison+element", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+
+#### Checking the database to confirm it as been updated
+```{python}
+my_sql_wrapper("""
+select * from item 
+""")
+
+```
+
+# Section 14: API Delete
+#### Here is an example of how we can delete item from the database through the api
+We will be deleting the previously added item "Strong Dagger" by targeting its id column value.
+```{python}
+#| eval: true
+#| echo: true
+import os
+import requests
+headers = {
+    'Authorization': f'Bearer LET_ME_IN_LET_ME_IN',
+    'Content-Type': 'application/json'
+}
+response = requests.get("http://127.0.0.1:5000/api/tables/item/delete/?item_id=2011", headers=headers)
+data = response.json()
+
+print(data)
+
+```
+
+#### Checking the database to see the item has been removed
+```{python}
+my_sql_wrapper("""
+select * from item
+""")
+
+```
+
+# Section 15: SQL Actions
+#### Here is the code for our endpoints
+```{python}
+#| eval: false
+#| echo: true
+
+@app.route('/api/tables')
+def hello_table():
+    df = my_sql_wrapper("show tables")
+    json_data = df.to_json()
+    return json_data
+
+@app.route('/api/tables/player')
+def get_players():
+    df = my_sql_wrapper("select * from player")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/locations')
+def get_locations():
+    df = my_sql_wrapper("select * from locations")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/NPC')
+def get_NPC():
+    df = my_sql_wrapper("select * from NPC")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/item')
+def get_item():
+    df = my_sql_wrapper("select * from item")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/game')
+def get_game():
+    df = my_sql_wrapper("select * from game")
+    json_data = df.to_json(orient='records')
+    return json_data
+
+## Getting a single object data for each table
+@app.route('/api/tables/player/<int:player_id>')
+def get_one_players(player_id):
+    df = my_sql_wrapper("select * from player where player_id = " + str(player_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/locations/<int:location_id>')
+def get_one_location(location_id):
+    df = my_sql_wrapper("select * from locations where location_id = " + str(location_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/NPC/<int:NPC_id>')
+def get_one_NPC(NPC_id):
+    df = my_sql_wrapper("select * from NPC where NPC_id = " + str(NPC_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/game/<int:game_id>')
+def get_one_game(game_id):
+    df = my_sql_wrapper("select * from game where game_id = " + str(game_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+@app.route('/api/tables/item/<int:item_id>')
+def get_one_item(item_id):
+    df = my_sql_wrapper("select * from item where item_id = " + str(item_id))
+    json_data = df.to_json(orient='records')
+    return json_data
+
+## Getting all item type
+@app.route('/api/tables/item/')
+def get_filter_item():
+    item_type = request.args.get('type')
+    item_source = request.args.get('item_source')
+    if item_type:
+        df = my_sql_wrapper("select * from item where item_type = " + "\"" + str(item_type) + "\"")
+        json_data = df.to_json(orient='records')
+    elif item_source:
+        item_source = item_source.replace('+', ' ')
+        df = my_sql_wrapper("select item_name, NPC_name, location_name, game_name from item a inner join NPC b on (a.item_id=b.item_id) inner join located c on (b.NPC_id=c.NPC_id) inner join locations d on (c.location_id=d.location_id) inner join game e on (e.game_id=d.game_id) where a.item_name = " + "\"" + str(item_source) + "\"")
+        json_data = df.to_json(orient='records')
+    return json_data
+## Insert into db Endpoint
+# item_id, item_name, item_type, item_def, item_atk, item_recipe, item_effect
+@app.route('/api/tables/item/add/')
+def add_item():
+    id = request.args.get('item_id')
+    name = request.args.get('item_name')
+    type = request.args.get('item_type')
+    deff = request.args.get('item_def')
+    atk = request.args.get('item_atk')
+    recipe = request.args.get('item_recipe')
+    effect = request.args.get('item_effect')
+
+    if any(param is None or not param.strip() for param in [id, name, type, deff, atk, recipe, effect]):
+        return jsonify({'Error': 'You did not provide the correct parameters.'}), 404
+    else:
+        id = int(id)
+        deff = int(deff)
+        atk = int(atk)
+        
+        name = name.replace('+', ' ')
+        type = type.replace('+', ' ')
+        recipe = recipe.replace('+', ' ')
+        effect = effect.replace('+', ' ')
+        my_sql_statement(f"insert into item(item_id, item_name, item_type, item_def, item_atk, item_recipe, item_effect) values ({id}, '{name}', '{type}', {deff}, {atk}, '{recipe}', '{effect}');")
+        return jsonify({'New Data Added': 'Successful'}), 200
+    
+# Delete endpoint in the item table 
+@app.route('/api/tables/item/delete/')
+def delete_item():
+    id = request.args.get('item_id')
+
+    if any(param is None or not param.strip() for param in [id]):
+        return jsonify({'Error': 'You did not provide the correct parameters.'}), 404
+    else:
+        id = int(id)
+        
+        my_sql_statement(f"delete from item where item_id={id};")
+        return jsonify({'Data Deleted': 'Successful'}), 200
+    
+# Update endpoint in item table 
+@app.route('/api/tables/item/update/')
+def update_item():
+    id = request.args.get('item_id')
+    name = request.args.get('item_name')
+    type = request.args.get('item_type')
+    deff = request.args.get('item_def')
+    atk = request.args.get('item_atk')
+    recipe = request.args.get('item_recipe')
+    effect = request.args.get('item_effect')
+
+    if any(param is None or not param.strip() for param in [id, name, type, deff, atk, recipe, effect]):
+        return jsonify({'Error': 'You did not provide the correct parameters.'}), 404
+    else:
+        id = int(id)
+        deff = int(deff)
+        atk = int(atk)
+        
+        name = name.replace('+', ' ')
+        type = type.replace('+', ' ')
+        recipe = recipe.replace('+', ' ')
+        effect = effect.replace('+', ' ')
+        my_sql_statement(f"update item set item_id={id}, item_name='{name}', item_type='{type}', item_def={deff}, item_atk={atk}, item_recipe='{recipe}', item_effect='{effect}' where item_id={id};")
+        return jsonify({'Data updated': 'Successful'}), 200
+```
+
+# Section 16: Reflection 
+Add reflections here

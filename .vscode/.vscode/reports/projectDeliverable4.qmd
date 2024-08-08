@@ -1,0 +1,396 @@
+---
+title: Project deliverable 4
+date: 10/15/2023
+author: Shashank Mallipeddi and Steven Zheng
+format:
+    html:
+        theme: cosmo
+        toc: true
+        embed-resource: true
+---
+
+# Section 1: Project Overview
+Our project will be focus on designing a working database that will contain drop information of items accross various of games. This project is aim to assist gamers, game developers and etc to easily find information about a certain game's item and reduce the amount of web surfing the individual has to go through. 
+
+#### Pitch Video URL:
+* [Pitch video Link](https://vcu.mediaspace.kaltura.com/media/video1810579320/1_qyamx8ig)
+* URL: https://vcu.mediaspace.kaltura.com/media/video1810579320/1_qyamx8ig
+
+#### Design Video: 
+* [Database Design video](https://vcu.mediaspace.kaltura.com/media/Deliverable4Video/1_yrq46lfc)
+* URL: https://vcu.mediaspace.kaltura.com/media/Deliverable4Video/1_yrq46lfc
+
+#### Github Repo:
+* [Github Repo Link](https://github.com/cmsc-vcu/cmsc508-fa2023-prj-itemdropdb-group-52)
+* URL: https://github.com/cmsc-vcu/cmsc508-fa2023-prj-itemdropdb-group-52
+
+
+# Section 2: Problem Description
+#### Problem Domain
+RPG games like World of Warcraf, Black Desert, Breath of the Wild and etc. often contans a vast amount of items, ranging from random trash items to legendary grade items. More often than not, players of such video game will need to browse the internet to find the origin/drop location of some item they never seen before or they will have to search up crafting recipe for said item like in Minecraft, Toram, or any games that allow a player to have a crafting occupation. However, sometimes it is a hassle to open up the browser again to search for information about the item. Therefore, we want to create a general item drop database that can store item information from any RPG games. 
+
+#### Need
+The reason this database is needed is because I believe that searching the internet for item information on a particular game usually takes a decent amount of time. The time wasted on searching could have been optimized and use for grinding said item. With this database, I believe we can cut down the time use for searching the item information down by 60% thus providing extra grind time for rpg players. 
+
+#### Context, Scope, Perspective
+This database can be use for any RPG players or any game that has too much item information for the human brain to memorize. 
+
+#### Motivation
+To be completely honest, I(Steven Zheng) am just too lazy to constantly search up item drop location for the current game that I am playing that I just wish there is a database where I can simply type in an item’s name and it will just tell me where to get it. 
+
+#### User roles and use cases
+User roles for our database could be players and admin. Players are people who seeks out information about a particular item information that is stored in our database. They will likely do a simple search/query in order to aquire the information that they are looking for. The result could contain an image link of the item's appearance or a marked location on a map where the item originate from. Admin could be game developers or the creator of the database where they could use the database as its intended purpose or they could add new items into the database, by a command, to keep it relavent after multiple updates of the games that the database supports. 
+
+#### Security and Privacy
+One of the major secuirty concern are scrapers. There are many web scraper program that could create a sub database using our database as the host. Therefore, creating a way to not store information in the html code is a possible route that we would like to take with our design. Another concern is user authentication which we will like to create an account system where players will have to create and verify their account before being able to interact with the database.
+
+# Section 3: Database Design
+```{dot}
+graph ER {
+    layout=neato;
+    scale=1.5;
+    node [shape=box]; Player; Item; NPC; Location; Game
+    node [shape=ellipse]; Player_ID, Player_LV, Player_Name, Item_Type, Item_ID, Effect, Item_Name, Recipe, Attack, Defense, NPC_Type, NPC_ID, NPC_LV, NPC_Name,Location_ID, Location_LV, Location_Name, Game_ID, Game_Version, Game_Name, Genre
+    node [shape=diamond,style=filled,color=lightgrey]; Has, In, From, At, Ground_Drop_at
+    
+    Player -- Has [label="M",len=1.00, color="black:white:black"]
+    Has -- Item [label="N",len=1.00]
+    Item -- From [label="1",len=1.00]
+    From -- NPC [label="N",len=1.00, color="black:white:black"]
+    NPC -- At [label="N",len=1.00]
+    At -- Location [label="M",len=1.00, color="black:white:black"]
+    Item -- Ground_Drop_at [label="N",len=1.00]
+    Ground_Drop_at -- Location [label="M",len=1.00, color="black:white:black"]
+    Location -- In [label="N",len=1.00, color="black:white:black"]
+    In -- Game [label="1",len=1.00, color="black:white:black"]
+    
+    Player -- Player_ID
+    Player -- Player_LV
+    Player -- Player_Name
+
+    Game -- Game_ID
+    Game -- Game_Version
+    Game -- Game_Name
+    Game -- Genre
+
+    Item -- Item_ID
+    Item -- Item_Type
+    Item -- Effect
+    Item -- Item_Name
+    Item -- Recipe
+    Item -- Attack
+    Item -- Defense
+
+    NPC -- NPC_Type
+    NPC -- NPC_ID
+    NPC -- NPC_LV
+    NPC -- NPC_Name
+
+    Location -- Location_ID
+    Location -- Location_LV
+    Location -- Location_Name
+
+}
+```
+#### Discussion
+We design our database with the focus mainly being the item information and what attributes are shared between items that are from many different game. Therefore, we decided that the entities should be: Game, Location, Item, NPC, and PLayer. Location could have been an attriWe noticed that some games such Dark Souls, Elden Ring, and etc have certain items as ground loot. Therefore, we opted to have a relationship between location and item directly to capture the ground drop loot. We also opted to have the NPC entity to have a type attribute to differentiate between monster or interactable characters. Lastly, from the feedback that was provided on canvas, we decided that the Game entity must have a version attribute since certain items can exist only in a specific version of the game. Every other relations are straightforward and standard without needing much explaination.
+
+#### Relational Schemas
+Relation: Player
+
+  * integer: Player_ID (Primary Key) (Must be unque.)
+  * integer: Player_LV (Must be 1 or greater.)
+  * string: Player_Name (One word)
+
+
+Relation: Game 
+
+  * integer: Game_ID (Primary Key) (Unique)
+  * string: Game_Version (Using String to capture any version using letters in their version)
+  * string: Game_Name 
+  * string: Genre
+
+
+Relation NPC 
+
+  * integer: NPC_ID (Primary Key) (Unique)
+  * string: NPC_Type (Hostile/Character)
+  * integer: NPC_LV
+  * string: NPC_Name
+  * integer: Item_ID (Foreign Key)
+
+
+Relation: Item 
+
+  * integer Item_ID (Primary Key)
+  * string Item_Type
+  * string Effect (Must be a listing if it has more than one effect.)
+  * string Item_Name
+  * string Recipe (Must be a list.)
+  * integer Attack
+  * integer Defense
+
+
+Relation: Location 
+
+  * integer: Location_ID (Primary Key)
+  * integer: Location_LV
+  * string: Location_Name
+  * integer: Game_ID (Foreign Key)
+
+
+Relation: Has (Linking Table)
+
+  * integer: Player_ID (Foreign Key)
+  * integer: Item_ID (Foreign Key)
+
+
+Relation: Ground_Drop_At (Linking Table)
+
+  * integer: Location_ID (Foreign Key)
+  * integer: Item_ID (Foreign Key)
+
+
+Relation: At (Linking Table)
+
+  * integer: Location_ID (Foreign Key)
+  * integer: NPC_ID (Foreign Key)
+
+#### Visual:
+```{mermaid}
+erDiagram
+
+NPC {
+    Integer NPC_LV
+    String NPC_Name
+    String NPC_Type
+    Integer NPC_ID PK
+    Integer Item_ID FK
+
+}
+Location {
+    Integer Location_ID PK
+    Integer Location_LV
+    String Location_Name
+    Integer Game_ID FK
+}
+Item {
+    Integer Item_ID PK
+    Integer Attack
+    Integer Defense
+    String Recipe
+    String Effect
+    String Item_Name
+    String Item_Type
+}
+Player {
+    Integer Player_ID PK
+    Integer Player_LV
+    String Player_Name
+}
+Game {
+    Integer Game_ID PK
+    String Game_Name
+    String Game_Version
+    String Genre
+}
+
+Has {
+    Integer Player_ID FK
+    Integer Item_ID FK
+}
+
+Ground_Drop_at {
+    Integer Item_ID FK
+    Integer Location_ID FK
+}
+At {
+    Integer NPC_ID FK
+    Integer Location_ID FK
+}
+```
+
+#### Functional Dependencies and Normalization
+This schema has 5 relations, each containing one of the entities and its attributes. The relations are NPC table, Item table, Location table, Player table, and Game table. The tuples in the NPC table have a primary key 'NPC_ID' which determines all the other attributes level, name, and type. The Item table also has an Item_ID attribute which is being used as the primary key. The name, defense, attack, and recipe attributes can be determined from this. The type attribute can determined using the Item_ID and Item_Name. The Location, Player and Game tables are similar to the NPC table in that they all have a respective ID attribute which can determine the other fields. The tables aslo have foreign keys linking them to the other tables.
+
+Most of the tables have an ID value that determines the rest of the attributes which are independent of each other. This means the tables are already in BCNF.
+
+NPC(NPC_LV, NPC_Name, NPC_Type, NPC_ID, Item_ID)
+Location(Location_ID, Location_Name, Location_LV, Game_ID)
+Player(Player_ID, Player_Name, Player_LV)
+Game(Game_ID, Game_Name, Version, Genre)
+Item(Item_ID, Item_Name, Type, Attack, Defense, Recipe, Effect)
+
+
+#### Specific queries
+1. Which NPC gives you the item Iron Sword?
+$\pi_{NPC\_Name}(\sigma_{Item\_Name=IronSword}(NPC \bowtie Item))$
+2. How many NPCs are located at Castle?
+$count(\sigma_{Location\_Name=Castle}(Location \bowtie LT:At))$
+3. What is the average level of the player base?
+$avg_{Player\_LV}(Player)$
+4. Which item has the most attack?
+$\pi_{Attack}(Item) - \pi_{a1}(\sigma_{a1<a2}(\rho_{a1/Attack}(Item) \times \rho_{a2/Attack}(Item)))$
+5. How many item types are there in Breath of the Wild?
+$count(\pi_{Type}())$
+6. Which player owns the most amount of distinct items?
+7. How many games are in the RPG genre?
+$count(\sigma_{Genre=FPS}(Game))$
+8. Which item is the most popular among the players?
+$max(\pi_{Item_ID}(LT:Has))$
+9. What is the recipe for magic wand?
+$\pi_{Recipe}(\sigma_{Item\_Name=MagicWand})$
+10. What version of the game Stardew Valley does this database supports?
+$\pi_{Version}(\sigma_{Game\_Name=StardewValley}(Game))$
+11. How many maps does the game world of warcraft have
+$count(\pi_{Location\_Name}(\sigma_{Game\_Name=WorldofWarcraft}(Location \bowtie Game)))$
+12. How many players have the item diamond dagger who is above lv 20?
+$count(\sigma_{Item\_Name=DiamondDagger \land Player\_LV>20}(Player \bowtie LT:Has \bowtie Item))$
+13. What armor has the best defense in Minecraft?
+14. Where is the Iron Sword item located?
+$\pi_{Location\_Name}(\sigma_{Item\_Name=IronSword}(LT:Ground\_Drop\_at \bowtie Item))$
+15. What are all the items that can do damage to opponents?
+$\pi_{Item\_Name}(\sigma_{Attack>0}(Item))$
+
+
+#### Sample Data
+##### NPC Table
+|   NPC_LV  |   NPC_name       |      NPC_Type        | NPC_ID| Item_ID |
+|:---------:|:----------------:|:--------------------:|:-----:|:-------:|
+|     1     |  Goblin Warrior  |       Hostile        | 1001  | 2001    |
+|     3     |  Tavern Keeper   |      Character       | 1002  | 2002    |
+|     2     |   Orc Shaman     |       Hostile        | 1003  | 2005    |
+|     5     |  Elder Druid     |      Character       | 1004  | 2006    |
+|     1     |      Bandit      |       Hostile        | 1005  | 2007    |
+|     4     | Priestess Elara  |      Character       | 1006  | 2008    |
+|     6     | Troll Berserker  |       Hostile        | 1007  | 2004    | 
+|     2     |   Shopkeeper     |      Character       | 1008  | 2009    |
+|     3     |  Vampire Lord    |       Hostile        | 1009  | 2003    |
+|     7     |   King Arthur    |      Character       | 1010  | 2010    |
+
+##### Item Table
+|  Item_ID   |    Item_Name           |  Type  | Defense | Attack |       Recipe                  |             Effect                   |
+|:----------:|:----------------------:|:------:|:-------:|:------:|:-----------------------------:|:------------------------------------:|
+|    2001    | Iron Sword             | Weapon |    0    |   10   |            "None"             |                "None"                |
+|    2002    | Wooden Shield          | Shield |   15    |    0   |            "None"             |                "None"                |
+|    2003    | Health Potion          | Potion |    0    |    0   |            "None"             |           "Restores 50 HP"           |
+|    2004    | Steel Armor            | Armor  |   30    |    0   |            "None"             |                "None"                |
+|    2005    | Fireball Scroll        | Scroll |    0    |    0   |            "None"             |        "Casts Fireball Spell"        |
+|    2006    | Health Elixir          | Potion |    0    |    0   |            "None"             |         "Restores all HP/MP"         |
+|    2007    | Diamond Dagger         | Weapon |    0    |   18   |            "None"             |                "None"                |
+|    2008    | Potion of Invisibility | Potion |    0    |    0   |            "None"             | "Grants Invisibility for 30 seconds" |
+|    2009    | Leather Helmet         | Helmet |   10    |    0   |            "None"             |                "None"                |
+|    2010    | Magic Wand             | Staff  |    0    |    5   | "Wooden Stick, Magic Crystal" |                "None"                |
+
+##### Location Table
+| Location_ID |    Location_Name      | Location_LV| Game_ID |
+|:-----------:|:---------------------:|:----------:|:-------:|
+|   3001      |   Village             |     1      | 5001    |
+|   3002      |   Forest              |     2      | 5002    |
+|   3003      |   Caves               |     3      | 5003    |
+|   3004      |   Castle              |     4      | 5001    |
+|   3005      |   Desert              |     5      | 5004    |
+|   3006      |   Mountains           |     6      | 5007    |
+|   3007      |   Swamp               |     7      | 5002    |
+|   3008      |   Ruins               |     8      | 5003    |
+|   3009      |   Underworld          |     9      | 5005    |
+|   3010      |   Sky City            |    10      | 5005    |
+
+###### Player Table
+
+| PLayer_ID| Player_Name | Player_LV |
+|:--------:|:-----------:|:---------:|
+|   4001   |   John      |    15     |
+|   4002   |   Sarah     |    20     |
+|   4003   |   Michael   |    12     |
+|   4004   |   Emily     |    18     |
+|   4005   |   Robert    |     7     |
+|   4006   |   Lisa      |    22     |
+|   4007   |   David     |    10     |
+|   4008   |   Jessica   |    25     |
+|   4009   |   Kevin     |    14     |
+|   4010   |   Mary      |     9     |
+
+##### Game Table
+| Game_ID |   Game_Name                               | Game_Version|     Genre          | 
+|:-------:|:-----------------------------------------:|:-----------:|:------------------:|
+|   5001  |   Skyrim                                  |    1.0      |   RPG              | 
+|   5002  |   Minecraft                               |    1.17     |   Sandbox          |
+|   5003  |   Call of Duty                            |    5.2      |   FPS              |
+|   5004  |   The Legend of Zelda: Breath of the Wild |    2.1      |   Adventure        | 
+|   5005  |   Among Us                                |    2.0      |   Social Deduction |
+|   5006  |   Fortnite                                |    13.0     |   Battle Royale    | 
+|   5007  |   Civilization VI                         |    1.6      |   Strategy         | 
+|   5008  |   Overwatch                               |    4.0      |   FPS              |
+|   5009  |   Stardew Valley                          |    1.5      |   Simulation       |
+|   5010  |   Dark Souls                              |    3.1      |   Action RPG       | 
+
+##### Linking Table: Has
+| Player_ID | Item_ID |
+|:---------:|:-------:|
+| 4001      | 2002    |
+| 4001      | 2003    |
+| 4002      | 2002    |
+| 4002      | 2004    |
+| 4003      | 2002    |
+| 4003      | 2004    |
+| 4004      | 2006    |
+
+##### Linking Table: Ground_Drop_At
+| Item_ID | Location_ID |
+|:-------:|:-----------:|
+| 2001    | 3004        |
+| 2001    | 3007        |
+| 2004    | 3008        |
+| 2006    | 3001        |
+| 2006    | 3009        |
+| 2008    | 3002        |
+
+##### Linking Table: At
+| NPC_ID  | Location_ID |
+|:-------:|:-----------:|
+| 1001    | 3004        |
+| 1001    | 3007        |
+| 1004    | 3008        |
+| 1006    | 3001        |
+| 1006    | 3009        |
+| 1008    | 3002        |
+
+
+
+
+# Section 4: Project Management 
+#### Table Milestone
+| Class   | Project Name | Description     | Due Date | Complete Date |
+|---------|--------------|-----------------|----------|---------------|
+| CMSC508 | Deliverable 1| Intorduction    |08-27-2023| 08-26-2023    |
+| CMSC508 | Deliverable 2| Find a partner  |08-27-2023| 08-27-2023    |
+| CMSC508 | Deliverable 3| Team setup      |09-15-2023| 09-15-2023    |
+| CMSC508 | Deliverable 4| Database design |10-15-2023| 10-15-2023    |
+
+
+#### Project Schedule 
+```{mermaid}
+gantt
+    todaymarker off
+    title Remainging Task for CMSC508 Project
+    dateFormat YYYY-MM-DD
+    section Conceptual Design      
+        Deliverable 4: 2023-10-01, 2023-10-15
+    section Logical Design
+        Start Prep :2023-10-15, 2023-10-21
+        Finish Design:2023-10-21, 2023-11-03
+    section Physical Design
+        Preparing :2023-11-01, 2023-11-05
+        Completing Design:2023-11-05, 2023-11-17
+    section Implementation
+        Start Prepping : 2023-11-17, 2023-11-28
+        Completed Project    : 2023-11-28, 2023-12-11
+```
+
+
+
+
+#### Video
+* Video URL: https://vcu.mediaspace.kaltura.com/media/Deliverable4Video/1_yrq46lfc
+* [Hyper Link](https://vcu.mediaspace.kaltura.com/media/Deliverable4Video/1_yrq46lfc)
